@@ -1,4 +1,4 @@
-MIT License
+/* MIT License
 
 Copyright (c) 2021 Chirantan Nath <emergency.jasper@gmail.com>
 
@@ -18,4 +18,12 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+SOFTWARE.*/
+
+//TOOO: The documentation for this package is to serve as a code guide into developing this particular software 
+//library.
+
+/**
+ * 
+ */
+package simulators.Intel8085.core;
