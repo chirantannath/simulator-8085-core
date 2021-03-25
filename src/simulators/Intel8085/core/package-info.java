@@ -20,10 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
 
-//TOOO: The documentation for this package is to serve as a code guide into developing this particular software 
-//library.
-
-/**
- * 
+/** TODO: DOCUMENTATION PENDING
+ * @author Chirantan Nath (emergency.jasper@gmail.com)
  */
 package simulators.Intel8085.core;
