@@ -21,14 +21,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
 package simulators.Intel8085.core;
 
-/** Represents/models an interface to the (read/write and random accessible; 8-bit line, 16-bit address) memory "chip"
+/** Represents/models an interface to the (random accessible; 8-bit line, 16-bit address) memory "chip"
  * attached to the 8085 chip. This interface permits read/write access to both any potential 8085 "interpreters" and any
  * class which wishes to directly interface a memory model compatible with the 8085. This interface forces objects
  * of implementing classes to be serializable, to permit saving of state of the memory used at any instant of time.
  * 
  * <p><strong>Note:</strong> All addresses, although accepted as {@code short}s, must actually be manipulated as 
- * {@code unsigned short}s, since that is the address model used by the 8085.</p> Also note that this interface makes
- * no guarantees about thread safety.
+ * {@code unsigned short}s, since that is the address model used by the 8085. Also note that this interface makes
+ * no guarantees about thread safety.</p>
+ * 
+ * <p>Several of the methods defined can throw a {@link ReadOnlyMemoryException} if the implementing class wishes to
+ * implement a read-only memory interface.</p>
  * @author Chirantan Nath (emergency.jasper@gmail.com)
  */
 public interface Memory extends java.util.RandomAccess, java.io.Serializable {
@@ -36,7 +39,7 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
      * interface. In other words, the bit pattern returned is 1 in places where the address bits accepted by this memory
      * interface is variable (connected to a potential 8085 chip). The returned value is to be thought of as an
      * {@code unsigned short}. We can also say that valid 16-bit addresses to this memory interface are valid <i>if and only if</i>
-     * {@code (address & getFixedAddressBitmask() & 0xFFFF) == (getFixedAddressBitmask() & 0xFFFF) && (address & getAllowedAddressBitmask() & 0xFFFF) == (address & 0xFFFF)}
+     * {@code (address & ~getAllowedAddressBitmask() & 0xFFFF) == (getFixedAddressBitmask() & 0xFFFF)}
      * is true.
      * 
      * <p>Note that this value also reflects the size (in bytes/addressable locations) of the memory interface/chip. If
@@ -76,7 +79,7 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
      * are the exact fixed binary values attached to the other "address lines" of this memory interface.</li>
      * </ol>
      * We can also say that valid 16-bit addresses to this memory interface are valid <i>if and only if</i>
-     * {@code (address & getFixedAddressBitmask() & 0xFFFF) == (getFixedAddressBitmask() & 0xFFFF) && (address & getAllowedAddressBitmask() & 0xFFFF) == (address & 0xFFFF)}
+     * {@code (address & ~getAllowedAddressBitmask() & 0xFFFF) == (getFixedAddressBitmask() & 0xFFFF)}
      * is true. The returned value is to be thought of as an {@code unsigned short}.
      * @return a bit-pattern representing the fixed binary signals given to inaccessible address lines of this memory
      * interface
@@ -86,7 +89,7 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
     /** Checks if the 16-bit unsigned address given is a valid address that can be accepted by the memory interface {@code m}, which must
      * not be null. This method is guaranteed to be equivalent to the following check:
      * <pre><code>
-     * (address &amp; m.getFixedAddressBitmask() &amp; 0xFFFF) == (m.getFixedAddressBitmask() &amp; 0xFFFF) &amp;&amp; (address &amp; m.getAllowedAddressBitmask() &amp; 0xFFFF) == (address &amp; 0xFFFF)
+     * (address &amp; ~m.getAllowedAddressBitmask() &amp; 0xFFFF) == (m.getFixedAddressBitmask() &amp; 0xFFFF)
      * </code></pre>
      * @param m the memory interface to check for
      * @param address the 16-bit address (unsigned) to check
@@ -98,7 +101,7 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
     public static boolean isValidAddress(Memory m, short address) {
         final int fixedAddressBitmask = m.getFixedAddressBitmask();
         final int allowedAddressBitmask = m.getAllowedAddressBitmask();
-        return (address & fixedAddressBitmask & 0xFFFF) == (fixedAddressBitmask & 0xFFFF) && (address & allowedAddressBitmask & 0xFFFF) == (address & 0xFFFF);
+        return (address & ~allowedAddressBitmask & 0xFFFF) == (fixedAddressBitmask & 0xFFFF);
     }
     /** Gets the byte value stored at address {@code address}, which is to be thought of as an {@code unsigned short}.
      * 
@@ -113,6 +116,8 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
      */
     byte get(short address);
     /** Sets the byte value stored at address {@code address}, which is to be thought of as an {@code unsigned short}.
+     * Implementing classes can throw a {@link ReadOnlyMemoryException} in cases when the implemented memory is 
+     * read-only.
      * 
      * <p>Implementations must not give an error result (or throw any exception) in cases when the given address is not
      * in the address space accepted by this memory interface. In other words; the {@code address} parameter, if required, must be
@@ -121,6 +126,7 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
      * </p>
      * @param address the memory location to access
      * @param value the value to store
+     * @throws ReadOnlyMemoryException if this memory interface is read-only
      * @see #get(short) 
      */
     void set(short address, byte value);
@@ -131,7 +137,7 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
      * returned array reference must be backed by this memory interface, in other words; changing the values of the
      * returned array directly reflects the possible values returned by {@link #get(short) } and vice versa (from
      * {@link #set(short, byte) }). This method is optional; classes not wishing to allow direct access to the memory
-     * can return {@code null}. 
+     * can return {@code null}; as well as in cases where this memory interface should be read-only. 
      * 
      * <p>If a backing array <i>is</i> returned; it's length must be exactly equal to the value returned by
      * {@link #getMemorySize()}; and there must exist a bijective correspondence between the indexes of the returned array
@@ -156,4 +162,39 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
      * @see java.util.Arrays#equals(byte[], byte[])  
      */
     byte[] createMemoryCopy();
+    /** Wraps the memory interface {@code m} into a read-only interface which will throw {@link ReadOnlyMemoryException}
+     * or return {@code null} if an attempt is made to change the contents of the returned object. The returned object
+     * is backed by {@code m}; all changes made directly to {@code m} will be reflected in the returned object (but
+     * not vice versa).
+     * @param m the memory interface to wrap
+     * @return a read-only wrapper around {@code m}
+     */
+    public static Memory readOnlyMemory(final Memory m) {
+        return new Memory() {
+            @Override public final short getAllowedAddressBitmask() {return m.getAllowedAddressBitmask();}
+            @Override public final int getMemorySize() {return m.getMemorySize();}
+            @Override public final short getFixedAddressBitmask() {return m.getFixedAddressBitmask();}
+            @Override public final byte get(short address) {return m.get(address);}
+            @Override public final void set(short address, byte value) {throw new ReadOnlyMemoryException();}
+            @Override public final byte[] getBackingArray() {return null;}
+            @Override public final byte[] createMemoryCopy() {return m.createMemoryCopy();}
+        };
+    }
+    /** Wraps the memory interface {@code m} into a thread-safe ({@code synchronized}) implementation. The returned object is
+     * backed by {@code m}; all changes made directly to {@code m} will be reflected in the returned object and vice 
+     * versa.
+     * @param m the memory interface to wrap
+     * @return a {@code synchronized} wrapper around {@code m}
+     */
+    public static Memory synchronizedMemory(final Memory m) {
+        return new Memory() {
+            @Override public synchronized final short getAllowedAddressBitmask() {return m.getAllowedAddressBitmask();}
+            @Override public synchronized final int getMemorySize() {return m.getMemorySize();}
+            @Override public synchronized final short getFixedAddressBitmask() {return m.getFixedAddressBitmask();}
+            @Override public synchronized final byte get(short address) {return m.get(address);}
+            @Override public synchronized final void set(short address, byte value) {m.set(address, value);}
+            @Override public synchronized final byte[] getBackingArray() {return m.getBackingArray();}
+            @Override public synchronized final byte[] createMemoryCopy() {return m.createMemoryCopy();}
+        };
+    }
 }
