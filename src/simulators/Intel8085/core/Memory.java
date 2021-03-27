@@ -35,7 +35,8 @@ package simulators.Intel8085.core;
  * @author Chirantan Nath (emergency.jasper@gmail.com)
  */
 public interface Memory extends java.util.RandomAccess, java.io.Serializable {
-    /** Returns a bit-mask when, bit-wise ANDed with any address; evaluates to an address accepted by this memory 
+    /** Returns a bit-mask when, bit-wise ANDed with any address (and then bit-wise ORed with the return value of 
+     * {@link #getFixedAddressBitmask()}); evaluates to an address accepted by this memory 
      * interface. In other words, the bit pattern returned is 1 in places where the address bits accepted by this memory
      * interface is variable (connected to a potential 8085 chip). The returned value is to be thought of as an
      * {@code unsigned short}. We can also say that valid 16-bit addresses to this memory interface are valid <i>if and only if</i>
@@ -43,8 +44,8 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
      * is true.
      * 
      * <p>Note that this value also reflects the size (in bytes/addressable locations) of the memory interface/chip. If
-     * the number of 1's in the returned value is N, then the number of addressable locations or size of this memory
-     * interface is 2<sup>N</sup>; see {@link #getMemorySize()}.</p>
+     * the number of 1's in the binary representation of the returned value is N, then the number of addressable 
+     * locations or size of this memory interface is 2<sup>N</sup>; see {@link #getMemorySize()}.</p>
      * @return a bit-mask for valid addresses accepted by this chip
      * @see #getFixedAddressBitmask()
      * @see #isValidAddress(simulators.Intel8085.core.Memory, short) 
@@ -109,6 +110,7 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
      * in the address space accepted by this memory interface. In other words; the parameter, if required, must be
      * bit-wise ANDed with the value returned by {@link #getAllowedAddressBitmask()} and then, bit-wise ORed with the
      * return value of {@link #getFixedAddressBitmask()} (all as unsigned 16-bit integers) to produce a valid address.
+     * This is to permit page mirroring which is also present in real 8085 hardware.
      * </p>
      * @param address the memory location to access as a 16-bit unsigned integer
      * @return the 8-bit data stored at the given {@code address}
@@ -123,6 +125,7 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
      * in the address space accepted by this memory interface. In other words; the {@code address} parameter, if required, must be
      * bit-wise ANDed with the value returned by {@link #getAllowedAddressBitmask()} and then, bit-wise ORed with the
      * return value of {@link #getFixedAddressBitmask()} (all as unsigned 16-bit integers) to produce a valid address.
+     * This is to permit page mirroring/fold-back which is also present in real 8085 hardware.
      * </p>
      * @param address the memory location to access
      * @param value the value to store
@@ -137,7 +140,8 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
      * returned array reference must be backed by this memory interface, in other words; changing the values of the
      * returned array directly reflects the possible values returned by {@link #get(short) } and vice versa (from
      * {@link #set(short, byte) }). This method is optional; classes not wishing to allow direct access to the memory
-     * can return {@code null}; as well as in cases where this memory interface should be read-only. 
+     * can return {@code null}; as well as in cases where this memory interface should be read-only, as well in cases
+     * if the internal memory storage is implemented by any other method (sparse arrays for example).
      * 
      * <p>If a backing array <i>is</i> returned; it's length must be exactly equal to the value returned by
      * {@link #getMemorySize()}; and there must exist a bijective correspondence between the indexes of the returned array
@@ -152,7 +156,7 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
     byte[] getBackingArray();
     /** Returns a copy of the memory contained/interfaced by this memory interface. Changing the values of the array
      * returned does not affect the state of this object in any way. The length of the array must be exactly 
-     * {@link #getMemorySize()}. The returned values in the array, however, have the same bijective correspondence as 
+     * {@link #getMemorySize()}. The returned values in the array, however, must have the same bijective correspondence as 
      * indicated in the semantics of {@link #getBackingArray()}. In other words, if {@code getBackingArray()} returns a 
      * non-null reference, the array returned by this method and the array returned by {@code getBackingArray()} must be 
      * equal in value (exactly the same length and sequence of values) but must not be identically the same object; at
