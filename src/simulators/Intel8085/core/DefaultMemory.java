@@ -77,7 +77,7 @@ public class DefaultMemory implements Memory, java.io.Serializable, java.util.Ra
                 indexBitPosition <<= 1;
             }
         if(index >= indexBitPosition) throw new IndexOutOfBoundsException(">= "+indexBitPosition);
-        return (addressVector & allowedAddressBitmask | fixedAddressBitmask) & 0xFFFF;
+        return ((addressVector & allowedAddressBitmask) | fixedAddressBitmask) & 0xFFFF;
     }
     /** Maps a possible 16-bit unsigned {@code address} to an index suitable for a {@code byte[]} buffer that can be
      * used for storage of a {@link #Memory} object. The address is not required to be <i>valid</i>, indexes may mirror
@@ -178,7 +178,7 @@ public class DefaultMemory implements Memory, java.io.Serializable, java.util.Ra
         if(minimumMemorySize > 65536 || minimumMemorySize < 0) throw new IllegalArgumentException();
         //calculate ceil(log2(minimumMemorySize))
         int memsize = 1;
-        for(; memsize > minimumMemorySize; memsize <<= 1);
+        for(; memsize < minimumMemorySize; memsize <<= 1);
         memory = new byte[memsize];
         fixedAddressBitmask = 0; allowedAddressBitmask = (short)((memsize-1)&0xFFFF);
     }

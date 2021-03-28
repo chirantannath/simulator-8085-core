@@ -24,7 +24,7 @@ package simulators.Intel8085.core;
 /** Thrown by {@link Memory} if the memory is read-only and an attempt is made to change the contents.
  * @author Chirantan Nath (emergency.jasper@gmail.com)
  */
-public class ReadOnlyMemoryException extends RuntimeException {
+public class ReadOnlyMemoryException extends UnsupportedOperationException {
     /**
      * Creates a new instance of <code>ReadOnlyMemoryException</code> without detail message.
      */
