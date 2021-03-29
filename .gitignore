@@ -26,3 +26,5 @@ hs_err_pid*
 /test/
 /java-license.java
 /nbproject/private/private.xml
+nbproject/private/private.xml
+
