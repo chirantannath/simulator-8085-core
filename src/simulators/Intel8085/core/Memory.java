@@ -21,6 +21,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
 package simulators.Intel8085.core;
 
+import java.util.Objects;
+
 /** Represents/models an interface to the (random accessible; 8-bit line, 16-bit address) memory "chip"
  * attached to the 8085 chip. This interface permits read/write access to both any potential 8085 "interpreters" and any
  * class which wishes to directly interface a memory model compatible with the 8085. This interface forces objects
@@ -30,7 +32,7 @@ package simulators.Intel8085.core;
  * {@code unsigned short}s, since that is the address model used by the 8085. Also note that this interface makes
  * no guarantees about thread safety.</p>
  * 
- * <p>Several of the methods defined can throw a {@link ReadOnlyMemoryException} if the implementing class wishes to
+ * <p>Several of the methods defined can throw a {@link ReadOnlyException} if the implementing class wishes to
  * implement a read-only memory interface.</p>
  * @author Chirantan Nath (emergency.jasper@gmail.com)
  */
@@ -117,8 +119,8 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
      * @see #set(short, byte) 
      */
     byte get(short address);
-    /** Sets the byte value stored at address {@code address}, which is to be thought of as an {@code unsigned short}.
-     * Implementing classes can throw a {@link ReadOnlyMemoryException} in cases when the implemented memory is 
+    /** *  Sets the byte value stored at address {@code address}, which is to be thought of as an {@code unsigned short}.
+     * Implementing classes can throw a {@link ReadOnlyException} in cases when the implemented memory is 
      * read-only.
      * 
      * <p>Implementations must not give an error result (or throw any exception) in cases when the given address is not
@@ -129,7 +131,7 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
      * </p>
      * @param address the memory location to access
      * @param value the value to store
-     * @throws ReadOnlyMemoryException if this memory interface is read-only
+     * @throws ReadOnlyException if this memory interface is read-only
      * @see #get(short) 
      */
     void set(short address, byte value);
@@ -166,32 +168,38 @@ public interface Memory extends java.util.RandomAccess, java.io.Serializable {
      * @see java.util.Arrays#equals(byte[], byte[])  
      */
     byte[] createMemoryCopy();
-    /** Wraps the memory interface {@code m} into a read-only interface which will throw {@link ReadOnlyMemoryException}
+    /** *  Wraps the memory interface {@code m} into a read-only interface which will throw {@link ReadOnlyException}
      * or return {@code null} if an attempt is made to change the contents of the returned object. The returned object
      * is backed by {@code m}; all changes made directly to {@code m} will be reflected in the returned object (but
-     * not vice versa).
+     * not vice versa). This method throws {@code NullPointerException} if {@code m} is {@code null}.
      * @param m the memory interface to wrap
      * @return a read-only wrapper around {@code m}
+     * @throws NullPointerException if {@code m} is {@code null}
      */
     public static Memory readOnlyMemory(final Memory m) {
+        Objects.requireNonNull(m);
         return new Memory() {
+            private static final long serialVersionUID = 13252636522123456L;
             @Override public final short getAllowedAddressBitmask() {return m.getAllowedAddressBitmask();}
             @Override public final int getMemorySize() {return m.getMemorySize();}
             @Override public final short getFixedAddressBitmask() {return m.getFixedAddressBitmask();}
             @Override public final byte get(short address) {return m.get(address);}
-            @Override public final void set(short address, byte value) {throw new ReadOnlyMemoryException();}
+            @Override public final void set(short address, byte value) {throw new ReadOnlyException();}
             @Override public final byte[] getBackingArray() {return null;}
             @Override public final byte[] createMemoryCopy() {return m.createMemoryCopy();}
         };
     }
     /** Wraps the memory interface {@code m} into a thread-safe ({@code synchronized}) implementation. The returned object is
      * backed by {@code m}; all changes made directly to {@code m} will be reflected in the returned object and vice 
-     * versa.
+     * versa. This method throws {@code NullPointerException} if {@code m} is {@code null}.
      * @param m the memory interface to wrap
      * @return a {@code synchronized} wrapper around {@code m}
+     * @throws NullPointerException if {@code m} is {@code null}
      */
     public static Memory synchronizedMemory(final Memory m) {
+        Objects.requireNonNull(m);
         return new Memory() {
+            private static final long serialVersionUID = 1345465432456L;
             @Override public synchronized final short getAllowedAddressBitmask() {return m.getAllowedAddressBitmask();}
             @Override public synchronized final int getMemorySize() {return m.getMemorySize();}
             @Override public synchronized final short getFixedAddressBitmask() {return m.getFixedAddressBitmask();}

@@ -21,6 +21,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
 package simulators.Intel8085.core;
 
+import java.util.Objects;
+
 /** Represents an interface for obtaining (and "externally" mutating) the state of an 8085 "chip" (the contents of its
  * registers). This interface considers only "programmable" registers (A, B, C, D, E, H, L, flags, stack pointer, and
  * program counter). It does not consider any internal register arrays, memory pointer registers, or output flags 
@@ -32,7 +34,9 @@ package simulators.Intel8085.core;
  * <p>Note that the definition of "processor state" as defined by this interface does not include the memory/RAM 
  * attached to the 8085; instead memory is modeled by {@link Memory} and its implementing classes.</p>
  * 
- * <p>This interface makes no guarantees about thread safety and the details are left to the implementation.</p>
+ * <p>This interface makes no guarantees about thread safety and the details are left to the implementation. In case
+ * a synchronized version a desired, consider 
+ * {@link #synchronizedProcessorState(simulators.Intel8085.core.ProcessorState)}.</p>
  * @see FlagRegisterConstants
  * @author chiru
  */
@@ -263,21 +267,287 @@ public interface ProcessorState extends FlagRegisterConstants, java.io.Serializa
      * {@link #getRegisterC()}. Just after initialization of this object, the value returned by this method is undefined
      * (can be random or some default value) until a call to {@link #setRegisterPairBC(short)},
      * {@link #setRegisterB(byte)} or {@link #setRegisterC(byte)} is made.
-     * @return 
+     * @return the current value of the BC register pair
      */
     short getRegisterPairBC();
-    /**
-     * 
-     * @param word 
+    /** Sets the new value of the BC register pair; passed as the 16-bit unsigned {@code word}. The value passed must be
+     * reflected in a subsequent call to {@link #getRegisterPairBC()} as well as the higher significant byte in 
+     * {@link #getRegisterB()} and lower significant byte in {@link #getRegisterC()}. 
+     * @param word the new value for BC register pair.
+     * @see #setRegisterB(byte) 
+     * @see #setRegisterC(byte)
      */
     void setRegisterPairBC(short word);
-    
+    /** Gets the current value of the B register. This is to be the same as the higher significant byte of the value 
+     * returned by {@link #getRegisterPairBC()}. Just after initialization of this object, the value returned by this
+     * method is undefined (can be random or some default value) until a call to {@link #setRegisterB(byte)} or 
+     * {@link #setRegisterPairBC(short)} is made.
+     * 
+     * <p>The default implementation takes care of the above requirements by manipulating the return value from 
+     * {@code getRegisterPairBC()}.</p>
+     * @return the current value of the B register
+     */
     public default byte getRegisterB() {return (byte)((getRegisterPairBC() >>> 8) & 0xFF);}
-    
+    /** Sets the new value of the B register. The value passed must be reflected by a subsequent call to 
+     * {@link #getRegisterB()} and in the higher significant byte of {@link #getRegisterPairBC()}. 
+     * 
+     * <p>The default implementation takes care of the above requirements by manipulating the return value from 
+     * {@code getRegisterPairBC()} and sending it to {@link #setRegisterPairBC(short)}.</p>
+     * @param value the new value for B register
+     */
     public default void setRegisterB(byte value) {setRegisterPairBC((short)(((getRegisterPairBC() & 0x00FF) | ((value << 8) & 0xFF00)) & 0xFFFF));}
-    
+    /** Gets the current value of the C register. This is to be the same as the lower significant byte of the value 
+     * returned by {@link #getRegisterPairBC()}. Just after initialization of this object, the value returned by this
+     * method is undefined (can be random or some default value) until a call to {@link #setRegisterC(byte)} or 
+     * {@link #setRegisterPairBC(short)} is made.
+     * 
+     * <p>The default implementation takes care of the above requirements by manipulating the return value from 
+     * {@code getRegisterPairBC()}.</p>
+     * @return the current value of the C register
+     */
     public default byte getRegisterC() {return (byte)(getRegisterPairBC() & 0xFF);}
-    
+    /** Sets the new value of the C register. The value passed must be reflected by a subsequent call to 
+     * {@link #getRegisterC()} and in the lower significant byte of {@link #getRegisterPairBC()}. 
+     * 
+     * <p>The default implementation takes care of the above requirements by manipulating the return value from 
+     * {@code getRegisterPairBC()} and sending it to {@link #setRegisterPairBC(short)}.</p>
+     * @param value the new value for C register
+     */
     public default void setRegisterC(byte value) {setRegisterPairBC((short)(((getRegisterPairBC() & 0xFF00) | (value & 0x00FF)) & 0xFFFF));}
     
+    /** Gets the current value of the DE register pair as a 16-bit unsigned integer. The higher significant byte 
+     * returned must be the same as {@link #getRegisterD()} and the lower significant byte the same as 
+     * {@link #getRegisterE()}. Just after initialization of this object, the value returned by this method is undefined
+     * (can be random or some default value) until a call to {@link #setRegisterPairDE(short)},
+     * {@link #setRegisterD(byte)} or {@link #setRegisterE(byte)} is made.
+     * @return the current value of the DE register pair
+     */
+    short getRegisterPairDE();
+    /** Sets the new value of the DE register pair; passed as the 16-bit unsigned {@code word}. The value passed must be
+     * reflected in a subsequent call to {@link #getRegisterPairDE()} as well as the higher significant byte in 
+     * {@link #getRegisterD()} and lower significant byte in {@link #getRegisterE()}. 
+     * @param word the new value for DE register pair.
+     * @see #setRegisterD(byte) 
+     * @see #setRegisterE(byte)
+     */
+    void setRegisterPairDE(short word);
+    /** Gets the current value of the D register. This is to be the same as the higher significant byte of the value 
+     * returned by {@link #getRegisterPaiDE()}. Just after initialization of this object, the value returned by this
+     * method is undefined (can be random or some default value) until a call to {@link #setRegisterD(byte)} or 
+     * {@link #setRegisterPairDE(short)} is made.
+     * 
+     * <p>The default implementation takes care of the above requirements by manipulating the return value from 
+     * {@code getRegisterPairDE()}.</p>
+     * @return the current value of the D register
+     */
+    public default byte getRegisterD() {return (byte)((getRegisterPairDE() >>> 8) & 0xFF);}
+    /** Sets the new value of the D register. The value passed must be reflected by a subsequent call to 
+     * {@link #getRegisterD()} and in the higher significant byte of {@link #getRegisterPairDE()}. 
+     * 
+     * <p>The default implementation takes care of the above requirements by manipulating the return value from 
+     * {@code getRegisterPairDE()} and sending it to {@link #setRegisterPairDE(short)}.</p>
+     * @param value the new value for D register
+     */
+    public default void setRegisterD(byte value) {setRegisterPairDE((short)(((getRegisterPairDE() & 0x00FF) | ((value << 8) & 0xFF00)) & 0xFFFF));}
+    /** Gets the current value of the E register. This is to be the same as the lower significant byte of the value 
+     * returned by {@link #getRegisterPairDE()}. Just after initialization of this object, the value returned by this
+     * method is undefined (can be random or some default value) until a call to {@link #setRegisterE(byte)} or 
+     * {@link #setRegisterPairDE(short)} is made.
+     * 
+     * <p>The default implementation takes care of the above requirements by manipulating the return value from 
+     * {@code getRegisterPairDE()}.</p>
+     * @return the current value of the E register
+     */
+    public default byte getRegisterE() {return (byte)(getRegisterPairDE() & 0xFF);}
+    /** Sets the new value of the E register. The value passed must be reflected by a subsequent call to 
+     * {@link #getRegisterE()} and in the lower significant byte of {@link #getRegisterPairDE()}. 
+     * 
+     * <p>The default implementation takes care of the above requirements by manipulating the return value from 
+     * {@code getRegisterPairDE()} and sending it to {@link #setRegisterPairDE(short)}.</p>
+     * @param value the new value for E register
+     */
+    public default void setRegisterE(byte value) {setRegisterPairDE((short)(((getRegisterPairDE() & 0xFF00) | (value & 0x00FF)) & 0xFFFF));}
+    
+    /** Gets the current value of the HL register pair as a 16-bit unsigned integer. The higher significant byte 
+     * returned must be the same as {@link #getRegisterH()} and the lower significant byte the same as 
+     * {@link #getRegisterL()}. Just after initialization of this object, the value returned by this method is undefined
+     * (can be random or some default value) until a call to {@link #setRegisterPairHL(short)},
+     * {@link #setRegisterH(byte)} or {@link #setRegisterL(byte)} is made.
+     * @return the current value of the HL register pair
+     */
+    short getRegisterPairHL();
+    /** Sets the new value of the HL register pair; passed as the 16-bit unsigned {@code word}. The value passed must be
+     * reflected in a subsequent call to {@link #getRegisterPairHL()} as well as the higher significant byte in 
+     * {@link #getRegisterH()} and lower significant byte in {@link #getRegisterL()}. 
+     * @param word the new value for HL register pair.
+     * @see #setRegisterH(byte) 
+     * @see #setRegisterL(byte)
+     */
+    void setRegisterPairHL(short word);
+    /** Gets the current value of the H register. This is to be the same as the higher significant byte of the value 
+     * returned by {@link #getRegisterPaiHL()}. Just after initialization of this object, the value returned by this
+     * method is undefined (can be random or some default value) until a call to {@link #setRegisterH(byte)} or 
+     * {@link #setRegisterPairHL(short)} is made.
+     * 
+     * <p>The default implementation takes care of the above requirements by manipulating the return value from 
+     * {@code getRegisterPairHL()}.</p>
+     * @return the current value of the D register
+     */
+    public default byte getRegisterH() {return (byte)((getRegisterPairHL() >>> 8) & 0xFF);}
+    /** Sets the new value of the H register. The value passed must be reflected by a subsequent call to 
+     * {@link #getRegisterH()} and in the higher significant byte of {@link #getRegisterPairHL()}. 
+     * 
+     * <p>The default implementation takes care of the above requirements by manipulating the return value from 
+     * {@code getRegisterPairHL()} and sending it to {@link #setRegisterPairHL(short)}.</p>
+     * @param value the new value for H register
+     */
+    public default void setRegisterH(byte value) {setRegisterPairHL((short)(((getRegisterPairHL() & 0x00FF) | ((value << 8) & 0xFF00)) & 0xFFFF));}
+    /** Gets the current value of the L register. This is to be the same as the lower significant byte of the value 
+     * returned by {@link #getRegisterPairHL()}. Just after initialization of this object, the value returned by this
+     * method is undefined (can be random or some default value) until a call to {@link #setRegisterL(byte)} or 
+     * {@link #setRegisterPairHL(short)} is made.
+     * 
+     * <p>The default implementation takes care of the above requirements by manipulating the return value from 
+     * {@code getRegisterPairHL()}.</p>
+     * @return the current value of the L register
+     */
+    public default byte getRegisterL() {return (byte)(getRegisterPairHL() & 0xFF);}
+    /** Sets the new value of the L register. The value passed must be reflected by a subsequent call to 
+     * {@link #getRegisterL()} and in the lower significant byte of {@link #getRegisterPairHL()}. 
+     * 
+     * <p>The default implementation takes care of the above requirements by manipulating the return value from 
+     * {@code getRegisterPairHL()} and sending it to {@link #setRegisterPairHL(short)}.</p>
+     * @param value the new value for L register
+     */
+    public default void setRegisterL(byte value) {setRegisterPairHL((short)(((getRegisterPairHL() & 0xFF00) | (value & 0x00FF)) & 0xFFFF));}
+    
+    /** Returns the current value of the stack pointer (SP) register as a 16-bit unsigned integer. Just after 
+     * initialization of this object, this value may be undefined (can be random or some default value) until a call to
+     * {@link #setStackPointerRegister(short)} is made.
+     * @return the current value of SP register
+     */
+    short getStackPointerRegister();
+    /** Sets the new value of the stack pointer (SP) register to the 16-bit unsigned integer passed in {@code word}.
+     * This value must be reflected in a subsequent call to {@link #getStackPointerRegister()}.
+     * @param word the new value for SP register
+     */
+    void setStackPointerRegister(short word);
+    /** Returns the current value of the program counter (PC) register as a 16-bit unsigned integer. Just after 
+     * initialization of this object, this value may be undefined (can be random or some default value) until a call to
+     * {@link #setProgramCounterRegister(short)} is made.
+     * @return the current value of PC register
+     */
+    short getProgramCounterRegister();
+    /** Sets the new value of the program counter (PC) register to the 16-bit unsigned integer passed in {@code word}.
+     * This value must be reflected in a subsequent call to {@link #getProgramCounterRegister()}.
+     * @param word the new value for PC register
+     */
+    void setProgramCounterRegister(short word);
+    
+    /** Returns  a read-only wrapper around {@code ps}. The methods which mutate the state throw 
+     * {@link ReadOnlyException} on call. The returned object is backed by {@code ps}, changes in {@code ps} are 
+     * reflected in the returned object. This method throws {@code NullPointerException} if {@code ps} is {@code null}.
+     * @param ps the processor state object to wrap
+     * @return a read-only wrapper around {@code ps}.
+     * @throws NullPointerException if {@code ps} is {@code null}
+     */
+    public static ProcessorState readOnlyProcessorState(final ProcessorState ps) {
+        return new ProcessorState() {
+            private static final long serialVersionUID = 24357342456L;
+            @Override public final short getProcessorStatusWord() {return ps.getProcessorStatusWord();}
+            @Override public final void setProcessorStatusWord(short word) {throw new ReadOnlyException();}
+            @Override public final byte getAccumulatorRegister() {return ps.getAccumulatorRegister();}
+            @Override public final void setAccumulatorRegister(byte value) {throw new ReadOnlyException();}
+            @Override public final byte getFlagRegister() {return ps.getFlagRegister();}
+            @Override public final void setFlagRegister(byte value) {throw new ReadOnlyException();}
+            @Override public final boolean isSignFlagSet() {return ps.isSignFlagSet();}
+            @Override public final void setSignFlagValue(boolean flag) {throw new ReadOnlyException();}
+            @Override public final boolean isZeroFlagSet() {return ps.isZeroFlagSet();}
+            @Override public final void setZeroFlagValue(boolean flag) {throw new ReadOnlyException();}
+            @Override public final boolean isAuxiliaryCarryFlagSet() {return ps.isAuxiliaryCarryFlagSet();}
+            @Override public final void setAuxiliaryCarryFlagValue(boolean flag) {throw new ReadOnlyException();}
+            @Override public final boolean isParityEven() {return ps.isParityEven();}
+            @Override public final boolean isParityOdd() {return ps.isParityOdd();}
+            @Override public final void setParityFlagValue(boolean flag) {throw new ReadOnlyException();}
+            @Override public final boolean isCarryFlagSet() {return ps.isCarryFlagSet();}
+            @Override public final void setCarryFlagValue(boolean flag) {throw new ReadOnlyException();}
+            @Override public final short getRegisterPairBC() {return ps.getRegisterPairBC();}
+            @Override public final void setRegisterPairBC(short word) {throw new ReadOnlyException();}
+            @Override public final byte getRegisterB() {return ps.getRegisterB();}
+            @Override public final void setRegisterB(byte value) {throw new ReadOnlyException();}
+            @Override public final byte getRegisterC() {return ps.getRegisterC();}
+            @Override public final void setRegisterC(byte value) {throw new ReadOnlyException();}
+            @Override public final short getRegisterPairDE() {return ps.getRegisterPairDE();}
+            @Override public final void setRegisterPairDE(short word) {throw new ReadOnlyException();}
+            @Override public final byte getRegisterD() {return ps.getRegisterD();}
+            @Override public final void setRegisterD(byte value) {throw new ReadOnlyException();}
+            @Override public final byte getRegisterE() {return ps.getRegisterE();}
+            @Override public final void setRegisterE(byte value) {throw new ReadOnlyException();}
+            @Override public final short getRegisterPairHL() {return ps.getRegisterPairHL();}
+            @Override public final void setRegisterPairHL(short word) {throw new ReadOnlyException();}
+            @Override public final byte getRegisterH() {return ps.getRegisterH();}
+            @Override public final void setRegisterH(byte value) {throw new ReadOnlyException();}
+            @Override public final byte getRegisterL() {return ps.getRegisterL();}
+            @Override public final void setRegisterL(byte value) {throw new ReadOnlyException();}
+            @Override public final short getStackPointerRegister() {return ps.getStackPointerRegister();}
+            @Override public final void setStackPointerRegister(short word) {throw new ReadOnlyException();}
+            @Override public final short getProgramCounterRegister() {return ps.getProgramCounterRegister();}
+            @Override public final void setProgramCounterRegister(short word) {throw new ReadOnlyException();}
+        };
+    }
+    /** Synchronized wrapper around {@code ProcessorState}. This is a separate class so we can extend it later in
+     * {@link Processor#synchronizedProcessor(simulators.Intel8085.core.Processor)}.
+     *///TODO: Create Processor interface!
+    static final class SynchronizedProcessorState implements ProcessorState {
+        private static final long serialVersionUID = 14243645754L;
+        final ProcessorState ps;
+        SynchronizedProcessorState(final ProcessorState ps) {this.ps = ps;}
+        @Override public synchronized final short getProcessorStatusWord() {return ps.getProcessorStatusWord();}
+        @Override public synchronized final void setProcessorStatusWord(short word) {ps.setProcessorStatusWord(word);}
+        @Override public synchronized final byte getAccumulatorRegister() {return ps.getAccumulatorRegister();}
+        @Override public synchronized final void setAccumulatorRegister(byte value) {ps.setAccumulatorRegister(value);}
+        @Override public synchronized final byte getFlagRegister() {return ps.getFlagRegister();}
+        @Override public synchronized final void setFlagRegister(byte value) {ps.setFlagRegister(value);}
+        @Override public synchronized final boolean isSignFlagSet() {return ps.isSignFlagSet();}
+        @Override public synchronized final void setSignFlagValue(boolean flag) {ps.setSignFlagValue(flag);}
+        @Override public synchronized final boolean isZeroFlagSet() {return ps.isZeroFlagSet();}
+        @Override public synchronized final void setZeroFlagValue(boolean flag) {ps.setZeroFlagValue(flag);}
+        @Override public synchronized final boolean isAuxiliaryCarryFlagSet() {return ps.isAuxiliaryCarryFlagSet();}
+        @Override public synchronized final void setAuxiliaryCarryFlagValue(boolean flag) {ps.setAuxiliaryCarryFlagValue(flag);}
+        @Override public synchronized final boolean isParityEven() {return ps.isParityEven();}
+        @Override public synchronized final boolean isParityOdd() {return ps.isParityOdd();}
+        @Override public synchronized final void setParityFlagValue(boolean flag) {ps.setParityFlagValue(flag);}
+        @Override public synchronized final boolean isCarryFlagSet() {return ps.isCarryFlagSet();}
+        @Override public synchronized final void setCarryFlagValue(boolean flag) {ps.setCarryFlagValue(flag);}
+        @Override public synchronized final short getRegisterPairBC() {return ps.getRegisterPairBC();}
+        @Override public synchronized final void setRegisterPairBC(short word) {ps.setRegisterPairBC(word);}
+        @Override public synchronized final byte getRegisterB() {return ps.getRegisterB();}
+        @Override public synchronized final void setRegisterB(byte value) {ps.setRegisterB(value);}
+        @Override public synchronized final byte getRegisterC() {return ps.getRegisterC();}
+        @Override public synchronized final void setRegisterC(byte value) {ps.setRegisterC(value);}
+        @Override public synchronized final short getRegisterPairDE() {return ps.getRegisterPairDE();}
+        @Override public synchronized final void setRegisterPairDE(short word) {ps.setRegisterPairDE(word);}
+        @Override public synchronized final byte getRegisterD() {return ps.getRegisterD();}
+        @Override public synchronized final void setRegisterD(byte value) {ps.setRegisterD(value);}
+        @Override public synchronized final byte getRegisterE() {return ps.getRegisterE();}
+        @Override public synchronized final void setRegisterE(byte value) {ps.setRegisterE(value);}
+        @Override public synchronized final short getRegisterPairHL() {return ps.getRegisterPairHL();}
+        @Override public synchronized final void setRegisterPairHL(short word) {ps.setRegisterPairHL(word);}
+        @Override public synchronized final byte getRegisterH() {return ps.getRegisterH();}
+        @Override public synchronized final void setRegisterH(byte value) {ps.setRegisterH(value);}
+        @Override public synchronized final byte getRegisterL() {return ps.getRegisterL();}
+        @Override public synchronized final void setRegisterL(byte value) {ps.setRegisterL(value);}
+        @Override public synchronized final short getStackPointerRegister() {return ps.getStackPointerRegister();}
+        @Override public synchronized final void setStackPointerRegister(short word) {ps.setStackPointerRegister(word);}
+        @Override public synchronized final short getProgramCounterRegister() {return ps.getProgramCounterRegister();}
+        @Override public synchronized final void setProgramCounterRegister(short word) {ps.setProgramCounterRegister(word);}
+    }
+    /** Returns a synchronized/thread-safe wrapper around {@code ps}. The returned object is backed by {@code ps},
+     * changes to {@code ps} are reflected in the returned object and vice versa. This method throws 
+     * {@code NullPointerException} if {@code ps} is {@code null}.
+     * @param ps the processor state object to wrap
+     * @return a synchronized wrapper around {@code ps}
+     * @throws NullPointerException if {@code ps} is {@code null}
+     */
+    public static ProcessorState synchronizedProcessorState(final ProcessorState ps) {Objects.requireNonNull(ps); return new SynchronizedProcessorState(ps);}
 }
