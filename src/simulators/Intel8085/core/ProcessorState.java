@@ -40,7 +40,7 @@ import java.util.Objects;
  * @see FlagRegisterConstants
  * @author chiru
  */
-public interface ProcessorState extends FlagRegisterConstants, java.io.Serializable{
+public interface ProcessorState extends FlagRegisterConstants, InterruptMaskConstants, java.io.Serializable{
     /** Gets the current value of the processor status word for the 8085. This is a 16-bit unsigned integer which has:
      * <ol>
      * <li>The current 8-bit content of the accumulator (A) register as its higher significant byte. This value must
